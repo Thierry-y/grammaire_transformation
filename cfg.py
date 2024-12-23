@@ -105,6 +105,9 @@ class CFG:
         # Step 3: 确保所有产生式以终结符开头
         self._ensure_terminal_prefix()
 
+        # Step 4: 清理未使用的非终结符
+        self._remove_unused_non_terminals()
+
     def _eliminate_epsilon_rules(self):
         """
         消除空产生式（nullable rules）。
@@ -240,19 +243,65 @@ class CFG:
 
     def _ensure_terminal_prefix(self):
         """
-        确保每个产生式都以终结符开头。
+        确保每个产生式都以终结符开头，同时避免冗余规则。
         """
         for nt in list(self.productions.keys()):
             updated_productions = []
             for prod in self.productions[nt]:
-                if prod[0].islower():
+                if prod[0].islower():  # 已经以终结符开头
                     updated_productions.append(prod)
-                else:
+                else:  # 需要处理以非终结符开头的规则
                     prefix = prod[0]
                     suffix = prod[1:]
                     for replacement in self.productions[prefix]:
-                        updated_productions.append(replacement + suffix)
-            self.productions[nt] = updated_productions
+                        # 如果replacement已经以终结符开头，直接组合
+                        if replacement[0].islower():
+                            candidate = replacement + suffix
+                            if candidate not in updated_productions:
+                                updated_productions.append(candidate)
+                        else:
+                            # 避免生成多余的中间非终结符
+                            for final_prod in self._expand_to_terminal_prefix(replacement + suffix):
+                                if final_prod not in updated_productions:
+                                    updated_productions.append(final_prod)
+            self.productions[nt] = list(set(updated_productions))  # 去重
+
+    def _expand_to_terminal_prefix(self, prod):
+        """
+        展开产生式直到以终结符开头。
+
+        :param prod: 输入的产生式
+        :return: 以终结符开头的产生式列表
+        """
+        if prod[0].islower():
+            return [prod]
+
+        results = []
+        prefix = prod[0]
+        suffix = prod[1:]
+        for replacement in self.productions[prefix]:
+            results.extend(self._expand_to_terminal_prefix(replacement + suffix))
+        return results
+
+    def _remove_unused_non_terminals(self):
+        """
+        移除未使用的非终结符和多余规则。
+        """
+        used = {self.axiome}
+        stack = [self.axiome]
+
+        while stack:
+            nt = stack.pop()
+            for prod in self.productions.get(nt, []):
+                for symbol in prod:
+                    if symbol in self.non_terminals and symbol not in used:
+                        used.add(symbol)
+                        stack.append(symbol)
+
+        # 移除未使用的非终结符
+        self.non_terminals = used
+        self.productions = {nt: prods for nt, prods in self.productions.items() if nt in used}
+
 
 # 示例使用
 if __name__ == "__main__":
@@ -260,7 +309,9 @@ if __name__ == "__main__":
     cfg = CFG()
 
     # 添加规则
-    cfg.add_production('S', ['aSb', 'ab', 'E'])
+    cfg.add_production('S', ['AB'])
+    cfg.add_production('A', ['aA', 'a'])
+    cfg.add_production('B', ['bB', 'b']) 
 
     # 转换为Chomsky范式
     cfg.to_chomsky_normal_form()
