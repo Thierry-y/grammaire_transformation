@@ -9,6 +9,7 @@ class CFG:
         self.terminals = set()  # 终结符集合
         self.productions = {}  # 产生式规则，格式为{非终结符: [产生式列表]}
         self.axiome = axiome  # 起始符号
+        self.new_non_terminal_counter = 0  # 用于生成新非终结符
 
     def add_production(self, non_terminal, production_list):
         """
@@ -175,9 +176,17 @@ class CFG:
         生成新的非终结符。
         """
         import string
+        # 尝试从A到Z生成
         for c in string.ascii_uppercase:
             if c not in self.non_terminals and c != 'E':
                 return c
+
+        # 如果A-Z已用尽，使用字母+数字组合
+        while True:
+            new_nt = f"X{self.new_non_terminal_counter}"
+            self.new_non_terminal_counter += 1
+            if new_nt not in self.non_terminals:
+                return new_nt
 
 # 示例使用
 if __name__ == "__main__":
@@ -185,7 +194,8 @@ if __name__ == "__main__":
     cfg = CFG()
 
     # 添加规则
-    cfg.add_production('S', ['aSb', 'αβ'])
+    cfg.add_production('S', ['aSb', 'ab', 'E'])
+    cfg.add_production('A', ['bA', 'a'])
 
     # 转换为Chomsky范式
     cfg.to_chomsky_normal_form()
