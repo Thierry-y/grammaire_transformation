@@ -91,6 +91,20 @@ class CFG:
         # Step 4: 将终结符单独提取为产生式
         self._eliminate_mixed_rules()
 
+    def to_greibach_normal_form(self):
+        """
+        将CFG转换为Greibach范式。
+        """
+        # Step 1: 消除单一产生式和空产生式
+        self._eliminate_epsilon_rules()
+        self._eliminate_unit_rules()
+
+        # Step 2: 消除左递归
+        self._eliminate_left_recursion()
+
+        # Step 3: 确保所有产生式以终结符开头
+        self._ensure_terminal_prefix()
+
     def _eliminate_epsilon_rules(self):
         """
         消除空产生式（nullable rules）。
@@ -187,6 +201,58 @@ class CFG:
             self.new_non_terminal_counter += 1
             if new_nt not in self.non_terminals:
                 return new_nt
+            
+    def _eliminate_left_recursion(self):
+        """
+        消除直接和间接左递归。
+        """
+        non_terminals = list(self.non_terminals)
+        for i in range(len(non_terminals)):
+            nt_i = non_terminals[i]
+            new_productions = []
+
+            # 替换间接左递归
+            for j in range(i):
+                nt_j = non_terminals[j]
+                updated_productions = []
+                for prod in self.productions[nt_i]:
+                    if prod.startswith(nt_j):
+                        for beta in self.productions[nt_j]:
+                            updated_productions.append(beta + prod[1:])
+                    else:
+                        updated_productions.append(prod)
+                self.productions[nt_i] = updated_productions
+
+            # 消除直接左递归
+            alpha_productions = []
+            beta_productions = []
+            for prod in self.productions[nt_i]:
+                if prod.startswith(nt_i):
+                    alpha_productions.append(prod[1:])
+                else:
+                    beta_productions.append(prod)
+
+            if alpha_productions:
+                new_nt = self._generate_new_non_terminal()
+                self.non_terminals.add(new_nt)
+                self.productions[new_nt] = [alpha + new_nt for alpha in alpha_productions] + ['E']
+                self.productions[nt_i] = [beta + new_nt for beta in beta_productions]
+
+    def _ensure_terminal_prefix(self):
+        """
+        确保每个产生式都以终结符开头。
+        """
+        for nt in list(self.productions.keys()):
+            updated_productions = []
+            for prod in self.productions[nt]:
+                if prod[0].islower():
+                    updated_productions.append(prod)
+                else:
+                    prefix = prod[0]
+                    suffix = prod[1:]
+                    for replacement in self.productions[prefix]:
+                        updated_productions.append(replacement + suffix)
+            self.productions[nt] = updated_productions
 
 # 示例使用
 if __name__ == "__main__":
@@ -195,10 +261,14 @@ if __name__ == "__main__":
 
     # 添加规则
     cfg.add_production('S', ['aSb', 'ab', 'E'])
-    cfg.add_production('A', ['bA', 'a'])
 
     # 转换为Chomsky范式
     cfg.to_chomsky_normal_form()
 
     # 显示文法
+    cfg.display()
+
+    print("----------------------------------")
+
+    cfg.to_greibach_normal_form()
     cfg.display()
