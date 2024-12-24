@@ -1,0 +1,3 @@
+S -> aC | aAC
+A -> aC
+C -> b
