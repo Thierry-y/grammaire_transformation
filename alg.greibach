@@ -1,3 +1,2 @@
-S -> aC | aAC
-A -> aC
-C -> b
+S -> aSB
+B -> b
