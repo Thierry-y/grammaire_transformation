@@ -1,2 +1,3 @@
-S -> aSB
-B -> b
+S -> cF | aSC | aC
+C -> b
+F -> d

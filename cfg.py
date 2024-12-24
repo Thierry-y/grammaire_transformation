@@ -112,27 +112,34 @@ class CFG:
         """
         消除空产生式（nullable rules）。
         """
+        # 找出所有可以生成空串的非终结符
         nullable = {nt for nt, productions in self.productions.items() if 'E' in productions}
 
         while True:
             new_nullable = nullable.copy()
             for nt, productions in self.productions.items():
-                if any(all(symbol in nullable for symbol in prod) for prod in productions):
-                    new_nullable.add(nt)
+                for prod in productions:
+                    if all(symbol in nullable for symbol in prod):  # 如果产生式右部全是 nullable
+                        new_nullable.add(nt)
             if new_nullable == nullable:
                 break
             nullable = new_nullable
 
-        # 更新规则，移除空产生式并添加新组合
+        # 更新规则，移除空产生式并添加所有可能的非空组合
         for nt in list(self.productions.keys()):
             new_productions = set()
             for prod in self.productions[nt]:
                 if prod == 'E':
-                    continue
-                options = [nullable if symbol in nullable else {symbol} for symbol in prod]
+                    continue  # 移除空串
+                options = [
+                    [symbol, ''] if symbol in nullable else [symbol]
+                    for symbol in prod
+                ]
                 from itertools import product
                 for option in product(*options):
-                    new_productions.add(''.join(option))
+                    new_prod = ''.join(option)
+                    if new_prod:  # 只添加非空组合
+                        new_productions.add(new_prod)
             self.productions[nt] = list(new_productions)
 
     def _eliminate_unit_rules(self):
