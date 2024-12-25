@@ -1,3 +1,0 @@
-S->aAb
-S->ab
-A->ab
