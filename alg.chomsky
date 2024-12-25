@@ -1,5 +1,4 @@
-S -> BC
-A -> c
-B -> DA
+S -> BC | AC
+A -> BS
+B -> a
 C -> b
-D -> a

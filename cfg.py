@@ -1,22 +1,22 @@
 class CFG:
     def __init__(self, axiome='S'):
         """
-        初始化一个CFG格式，包含非终结符集、终结符集、起始符号和产生式规则。
+        Initialiser un format CFG, contenant l'ensemble des non-terminaux, l'ensemble des terminaux, le symbole de départ et les règles de production.
 
-        :param axiome: 起始符号，默认为'S'
+        :param axiome: Le symbole de départ, par défaut 'S'
         """
-        self.non_terminals = set()  # 非终结符集合
-        self.terminals = set()  # 终结符集合
-        self.productions = {}  # 产生式规则，格式为{非终结符: [产生式列表]}
-        self.axiome = axiome  # 起始符号
-        self.new_non_terminal_counter = 0  # 用于生成新非终结符
+        self.non_terminals = set()  # Ensemble des non-terminaux
+        self.terminals = set()  # Ensemble des terminaux
+        self.productions = {}  # Règles de production, format {non-terminal: [liste de productions]}
+        self.axiome = axiome  # Symbole de départ
+        self.new_non_terminal_counter = 0  # Compteur pour générer de nouveaux non-terminaux
 
     def add_production(self, non_terminal, production_list):
         """
-        添加产生式规则。
+        Ajouter des règles de production.
 
-        :param non_terminal: 非终结符
-        :param production_list: 产生式列表（list of str）
+        :param non_terminal: Non-terminal
+        :param production_list: Liste des productions (list de str)
         """
         if non_terminal not in self.non_terminals:
             self.non_terminals.add(non_terminal)
@@ -26,122 +26,121 @@ class CFG:
         else:
             self.productions[non_terminal] = production_list
 
-        # 更新终结符和非终结符集
+        # Mettre à jour les ensembles des terminaux et des non-terminaux
         for production in production_list:
             for char in production:
-                if char.islower():  # 小写字母是终结符
+                if char.islower():  # Les lettres minuscules sont des terminaux
                     self.terminals.add(char)
-                elif char.isupper() and char != 'E':  # 大写字母（非E）是非终结符
+                elif char.isupper() and char != 'E':  # Les lettres majuscules (sauf 'E') sont des non-terminaux
                     self.non_terminals.add(char)
 
     def add_production_with_validation(self, non_terminal, production_list):
         if not CFG.is_valid_non_terminal(non_terminal):
-            raise ValueError(f"'{non_terminal}' 不是一个有效的非终结符！")
+            raise ValueError(f"'{non_terminal}' n'est pas un non-terminal valide !")
 
         for production in production_list:
             if not CFG.is_valid_production(production):
-                raise ValueError(f"'{production}' 不是一个有效的产生式！")
+                raise ValueError(f"'{production}' n'est pas une production valide !")
 
         self.add_production(non_terminal, production_list)
 
-
     def display(self):
         """
-        显示CFG的非终结符集、终结符集、起始符号和产生式规则。
+        Afficher l'ensemble des non-terminaux, des terminaux, du symbole de départ et des règles de production du CFG.
         """
-        print("非终结符集:", self.non_terminals)
-        print("终结符集:", self.terminals)
-        print("起始符号:", self.axiome)
-        print("产生式规则:")
+        print("Ensemble des non-terminaux:", self.non_terminals)
+        print("Ensemble des terminaux:", self.terminals)
+        print("Symbole de départ:", self.axiome)
+        print("Règles de production:")
         for non_terminal, productions in self.productions.items():
             print(f"  {non_terminal} -> {' | '.join(productions)}")
 
     @staticmethod
     def is_valid_non_terminal(symbol):
         """
-        检查符号是否是有效的非终结符。
+        Vérifier si le symbole est un non-terminal valide.
 
-        :param symbol: 符号
-        :return: 布尔值
+        :param symbol: Symbole
+        :return: Booléen
         """
         return len(symbol) == 1 and symbol.isupper() and symbol != 'E'
 
     @staticmethod
     def is_valid_terminal(symbol):
         """
-        检查符号是否是有效的终结符。
+        Vérifier si le symbole est un terminal valide.
 
-        :param symbol: 符号
-        :return: 布尔值
+        :param symbol: Symbole
+        :return: Booléen
         """
         return len(symbol) == 1 and symbol.islower()
 
     @staticmethod
     def is_valid_production(production):
         """
-        检查产生式是否有效（由非终结符、终结符或空串组成）。
+        Vérifier si la production est valide (composée de non-terminaux, terminaux ou de la chaîne vide).
 
-        :param production: 产生式
-        :return: 布尔值
+        :param production: Production
+        :return: Booléen
         """
         return all(c.islower() or (c.isupper() and c != 'E') or c == 'E' for c in production)
 
     def to_chomsky_normal_form(self):
         """
-        将CFG转换为Chomsky范式。
+        Convertir le CFG en forme normale de Chomsky.
         """
-        # Step 1: 消除空产生式
+        # Étape 1 : Éliminer les productions epsilon
         self._eliminate_epsilon_rules()
 
-        # Step 2: 消除单一产生式
+        # Étape 2 : Éliminer les productions unitaires
         self._eliminate_unit_rules()
 
-        # Step 3: 消除右部长度大于2的产生式
+        # Étape 3 : Éliminer les productions de longueur supérieure à 2
         self._eliminate_long_rules()
 
-        # Step 4: 将终结符单独提取为产生式
+        # Étape 4 : Extraire les terminaux dans des productions séparées
         self._eliminate_mixed_rules()
 
     def to_greibach_normal_form(self):
         """
-        将CFG转换为Greibach范式。
+        Convertir le CFG en forme normale de Greibach.
         """
-        # Step 1: 消除单一产生式和空产生式
+        # Étape 1 : Éliminer les productions unitaires et epsilon
         self._eliminate_epsilon_rules()
         self._eliminate_unit_rules()
 
-        # Step 2: 消除左递归
+        # Étape 2 : Éliminer la récursion à gauche
         self._eliminate_left_recursion()
 
-        # Step 3: 确保所有产生式以终结符开头
+        # Étape 3 : Assurer que toutes les productions commencent par un terminal
         self._ensure_terminal_prefix()
 
-        # Step 4: 清理未使用的非终结符
+        # Étape 4 : Nettoyer les non-terminaux inutilisés
         self._remove_unused_non_terminals()
 
     def _eliminate_epsilon_rules(self):
         """
-        消除空产生式（nullable rules）。
+        Éliminer les productions epsilon (règles nullables).
         """
-        # 找出所有可以生成空串的非终结符
+        # Trouver tous les non-terminaux qui peuvent générer la chaîne vide
         nullable = {nt for nt, productions in self.productions.items() if 'E' in productions}
 
         while True:
             new_nullable = nullable.copy()
             for nt, productions in self.productions.items():
                 for prod in productions:
-                    if all(symbol in nullable for symbol in prod):  # 如果产生式右部全是 nullable
+                    if all(symbol in nullable for symbol in prod):  # Si la partie droite de la production est entièrement nullable
                         new_nullable.add(nt)
             if new_nullable == nullable:
                 break
             nullable = new_nullable
 
-        # 更新规则，移除空产生式并添加所有可能的非空组合
+        # Mettre à jour les règles, supprimer les productions epsilon et ajouter toutes les combinaisons possibles non-nulles
         for nt in list(self.productions.keys()):
             new_productions = set()
             for prod in self.productions[nt]:
                 if prod == 'E':
-                    continue  # 移除空串
+                    continue  # Supprimer la chaîne vide
                 options = [
                     [symbol, ''] if symbol in nullable else [symbol]
                     for symbol in prod
@@ -149,13 +148,13 @@ class CFG:
                 from itertools import product
                 for option in product(*options):
                     new_prod = ''.join(option)
-                    if new_prod:  # 只添加非空组合
+                    if new_prod:  # Ajouter uniquement les combinaisons non-nulles
                         new_productions.add(new_prod)
             self.productions[nt] = list(new_productions)
 
     def _eliminate_unit_rules(self):
         """
-        消除单一产生式（unit rules）。
+        Éliminer les productions unitaires (unit rules).
         """
         for nt in list(self.productions.keys()):
             unit_productions = [p for p in self.productions[nt] if len(p) == 1 and p in self.non_terminals]
@@ -166,7 +165,7 @@ class CFG:
 
     def _eliminate_long_rules(self):
         """
-        消除右部长度大于2的产生式。
+        Éliminer les productions dont la partie droite a une longueur supérieure à 2.
         """
         new_rules = {}
         for nt in list(self.productions.keys()):
@@ -183,7 +182,7 @@ class CFG:
 
     def _eliminate_mixed_rules(self):
         """
-        将终结符单独提取为产生式。
+        Extraire les terminaux dans des productions séparées.
         """
         mapping = {}
         for nt in list(self.productions.keys()):
@@ -208,31 +207,31 @@ class CFG:
 
     def _generate_new_non_terminal(self):
         """
-        生成新的非终结符。
+        Générer un nouveau non-terminal.
         """
         import string
-        # 尝试从A到Z生成
+        # Essayer de générer de A à Z
         for c in string.ascii_uppercase:
             if c not in self.non_terminals and c != 'E':
                 return c
 
-        # 如果A-Z已用尽，使用字母+数字组合
+        # Si A-Z est déjà utilisé, utiliser une combinaison lettre+chiffre
         while True:
             new_nt = f"X{self.new_non_terminal_counter}"
             self.new_non_terminal_counter += 1
             if new_nt not in self.non_terminals:
                 return new_nt
-            
+
     def _eliminate_left_recursion(self):
         """
-        消除直接和间接左递归。
+        Éliminer la récursion directe et indirecte à gauche.
         """
         non_terminals = list(self.non_terminals)
         for i in range(len(non_terminals)):
             nt_i = non_terminals[i]
             new_productions = []
 
-            # 替换间接左递归
+            # Remplacer la récursion indirecte à gauche
             for j in range(i):
                 nt_j = non_terminals[j]
                 updated_productions = []
@@ -244,7 +243,7 @@ class CFG:
                         updated_productions.append(prod)
                 self.productions[nt_i] = updated_productions
 
-            # 消除直接左递归
+            # Éliminer la récursion directe à gauche
             alpha_productions = []
             beta_productions = []
             for prod in self.productions[nt_i]:
@@ -261,35 +260,35 @@ class CFG:
 
     def _ensure_terminal_prefix(self):
         """
-        确保每个产生式都以终结符开头，同时避免冗余规则。
+        Assurer que chaque production commence par un terminal, tout en évitant les règles redondantes.
         """
         for nt in list(self.productions.keys()):
             updated_productions = []
             for prod in self.productions[nt]:
-                if prod[0].islower():  # 已经以终结符开头
+                if prod[0].islower():  # Si la production commence déjà par un terminal
                     updated_productions.append(prod)
-                else:  # 需要处理以非终结符开头的规则
+                else:  # Si la production commence par un non-terminal
                     prefix = prod[0]
                     suffix = prod[1:]
                     for replacement in self.productions[prefix]:
-                        # 如果replacement已经以终结符开头，直接组合
+                        # Si replacement commence déjà par un terminal, concaténer directement
                         if replacement[0].islower():
                             candidate = replacement + suffix
                             if candidate not in updated_productions:
                                 updated_productions.append(candidate)
                         else:
-                            # 避免生成多余的中间非终结符
+                            # Éviter de générer des non-terminaux intermédiaires superflus
                             for final_prod in self._expand_to_terminal_prefix(replacement + suffix):
                                 if final_prod not in updated_productions:
                                     updated_productions.append(final_prod)
-            self.productions[nt] = list(set(updated_productions))  # 去重
+            self.productions[nt] = list(set(updated_productions))  # Éviter les doublons
 
     def _expand_to_terminal_prefix(self, prod):
         """
-        展开产生式直到以终结符开头。
+        Développer la production jusqu'à ce qu'elle commence par un terminal.
 
-        :param prod: 输入的产生式
-        :return: 以终结符开头的产生式列表
+        :param prod: Production d'entrée
+        :return: Liste de productions qui commencent par un terminal
         """
         if prod[0].islower():
             return [prod]
@@ -303,7 +302,7 @@ class CFG:
 
     def _remove_unused_non_terminals(self):
         """
-        移除未使用的非终结符和多余规则。
+        Supprimer les non-terminaux inutilisés et les règles superflues.
         """
         used = {self.axiome}
         stack = [self.axiome]
@@ -316,8 +315,6 @@ class CFG:
                         used.add(symbol)
                         stack.append(symbol)
 
-        # 移除未使用的非终结符
+        # Supprimer les non-terminaux inutilisés
         self.non_terminals = used
         self.productions = {nt: prods for nt, prods in self.productions.items() if nt in used}
-
-
