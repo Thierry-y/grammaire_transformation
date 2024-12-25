@@ -34,6 +34,17 @@ class CFG:
                 elif char.isupper() and char != 'E':  # 大写字母（非E）是非终结符
                     self.non_terminals.add(char)
 
+    def add_production_with_validation(self, non_terminal, production_list):
+        if not CFG.is_valid_non_terminal(non_terminal):
+            raise ValueError(f"'{non_terminal}' 不是一个有效的非终结符！")
+
+        for production in production_list:
+            if not CFG.is_valid_production(production):
+                raise ValueError(f"'{production}' 不是一个有效的产生式！")
+
+        self.add_production(non_terminal, production_list)
+
+
     def display(self):
         """
         显示CFG的非终结符集、终结符集、起始符号和产生式规则。
@@ -310,23 +321,3 @@ class CFG:
         self.productions = {nt: prods for nt, prods in self.productions.items() if nt in used}
 
 
-# 示例使用
-if __name__ == "__main__":
-    # 初始化CFG
-    cfg = CFG()
-
-    # 添加规则
-    cfg.add_production('S', ['AB'])
-    cfg.add_production('A', ['aA', 'a'])
-    cfg.add_production('B', ['bB', 'b']) 
-
-    # 转换为Chomsky范式
-    cfg.to_chomsky_normal_form()
-
-    # 显示文法
-    cfg.display()
-
-    print("----------------------------------")
-
-    cfg.to_greibach_normal_form()
-    cfg.display()

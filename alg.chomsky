@@ -1,6 +1,5 @@
-S -> BC | AC | DF
-A -> BS
-B -> a
+S -> BC
+A -> c
+B -> DA
 C -> b
-D -> c
-F -> d
+D -> a

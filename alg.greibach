@@ -1,3 +1,3 @@
-S -> cF | aSC | aC
+S -> aAC
+A -> c
 C -> b
-F -> d

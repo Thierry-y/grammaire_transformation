@@ -1,11 +1,10 @@
-# cfg_parser.py
-import cfg # 导入 cfg_utils 模块
+import cfg 
 
 def read_cfg_rules(file_path):
     """
-    读取给定文件中的CFG规则，并返回一个 CFG 对象。
+    Lire les règles CFG dans le fichier donné et retourner un objet CFG.
     """
-    rule = cfg.CFG()  # 创建 CFG 对象
+    rule = cfg.CFG()  # Créer un objet CFG
 
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -16,13 +15,13 @@ def read_cfg_rules(file_path):
 
                 non_terminal, productions = line.split('->')
                 production_list = productions.split('|')
-                rule.add_production(non_terminal, production_list) #使用cfg对象添加规则
+                rule.add_production_with_validation(non_terminal, production_list) # Utiliser l'objet CFG pour ajouter des règles
 
     except FileNotFoundError:
-        print(f"文件未找到: {file_path}")
-        return None #返回none，方便调用者进行错误处理
+        print(f"Fichier introuvable : {file_path}")
+        return None # Retourne None pour que l'appelant puisse gérer l'erreur
     except Exception as e:
-        print(f"发生错误: {e}")
+        print(f"Une erreur s'est produite : {e}")
         return None
 
-    return rule  # 返回 CFG 对象
+    return rule  # Retourner l'objet CFG
