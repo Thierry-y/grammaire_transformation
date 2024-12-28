@@ -1,0 +1,40 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+
+\title{Rapport de projet grammaires transformation}
+\author{Yang Tianyi \\ 22401398}
+\date{December 2024}
+
+\begin{document}
+
+\maketitle
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+\newpage
+
+% 正常的章节标题，自动编号
+\section{Mode d'emploi du programme}
+
+\subsection{Dans \texttt{cfg.general}, stocker les grammaires algébriques à transformer}
+
+\subsection{Utilisation de \texttt{make}:}
+
+\begin{itemize}
+    \item \texttt{make} ou \texttt{make run} exécute le programme \texttt{grammaire} pour générer les fichiers \texttt{alg.chomsky} et \texttt{alg.greibach}, qui sont respectivement les grammaires transformées en forme de Chomsky et Greibach.
+    \item \texttt{make diff} utilise le programme \texttt{generer}, lit les fichiers \texttt{alg.chomsky} et \texttt{alg.greibach}, génère les fichiers \texttt{test\_5\_chomsky.res} et \texttt{test\_5\_greibach.res} qui ont une longueur maximale de 5, et compare les deux fichiers \texttt{.res} pour vérifier s'il y a des différences.
+\end{itemize}
+
+\subsection{Sans utiliser \texttt{make}:}
+
+\begin{itemize}
+    \item \texttt{python3 grammaire.py} : Génère les fichiers \texttt{alg.chomsky} et \texttt{alg.greibach}.
+    \item \texttt{python3 generer.py alg.chomsky n} ou \texttt{python3 generer.py alg.greibach n} : Où \texttt{n} est la longueur maximale des mots générés par la grammaire.
+\end{itemize}
+
+\section{Structure de données pour la grammaire}
+\section{Algorithme de conversion de grammaire}
+
+
+
+\end{document}
