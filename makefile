@@ -15,7 +15,6 @@ generer_chomsky:
 generer_greibach:
 	$(PYTHON) generer.py alg.greibach $(NUM) > $(OUTPUT_GREIBACH)
 
-#faut d'abord exécuter run
 diff: run generer_chomsky generer_greibach
 	diff $(OUTPUT_CHOMSKY) $(OUTPUT_GREIBACH)
 

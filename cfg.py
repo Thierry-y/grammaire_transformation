@@ -1,3 +1,5 @@
+import string
+
 class CFG:
     def __init__(self, axiome='S'):
         """
@@ -9,7 +11,6 @@ class CFG:
         self.terminals = set()  # Ensemble des terminaux
         self.productions = {}  # Règles de production, format {non-terminal: [liste de productions]}
         self.axiome = axiome  # Symbole de départ
-        self.new_non_terminal_counter = 0  # Compteur pour générer de nouveaux non-terminaux
 
     def add_production(self, non_terminal, production_list):
         """
@@ -205,22 +206,23 @@ class CFG:
                     new_productions.append(new_prod)
             self.productions[nt] = new_productions
 
+
     def _generate_new_non_terminal(self):
         """
         Générer un nouveau non-terminal.
         """
-        import string
         # Essayer de générer de A à Z
         for c in string.ascii_uppercase:
             if c not in self.non_terminals and c != 'E':
                 return c
 
         # Si A-Z est déjà utilisé, utiliser une combinaison lettre+chiffre
-        while True:
-            new_nt = f"X{self.new_non_terminal_counter}"
-            self.new_non_terminal_counter += 1
-            if new_nt not in self.non_terminals:
-                return new_nt
+        for letter in string.ascii_uppercase:
+            for number in range(1, 10):  # Limiter les chiffres de 1 à 9
+                new_nt = f"{letter}{number}"
+                if new_nt not in self.non_terminals and new_nt != 'E':
+                    self.non_terminals.add(new_nt)
+                    return new_nt
 
     def _eliminate_left_recursion(self):
         """
