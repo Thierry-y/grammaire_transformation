@@ -1,9 +1,12 @@
 \documentclass{article}
 \usepackage{graphicx} % Required for inserting images
+\usepackage{url}
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage[bottom]{footmisc}
 
 \title{Rapport de projet grammaires transformation}
 \author{Yang Tianyi \\ 22401398}
-\date{December 2024}
+\date{Janvier 2025}
 
 \begin{document}
 
@@ -22,7 +25,7 @@
 
 \begin{itemize}
     \item \texttt{make} ou \texttt{make run} exécute le programme \texttt{grammaire} pour générer les fichiers \texttt{alg.chomsky} et \texttt{alg.greibach}, qui sont respectivement les grammaires transformées en forme de Chomsky et Greibach.
-    \item \texttt{make diff} utilise le programme \texttt{generer}, lit les fichiers \texttt{alg.chomsky} et \texttt{alg.greibach}, génère les fichiers \texttt{test\_5\_chomsky.res} et \texttt{test\_5\_greibach.res} qui ont une longueur maximale de 5, et compare les deux fichiers \texttt{.res} pour vérifier s'il y a des différences.
+    \item \texttt{make diff} utilise le programme \texttt{generer}, lit les fichiers \texttt{alg.chomsky} et \texttt{alg.greibach}, génère les fichiers \texttt{test\_5\_chomsky.res} et \texttt{test\_5\_greibach.res} qui ont une longueur de mot maximale de 5, et compare les deux fichiers \texttt{.res} pour vérifier s'il y a des différences.
 \end{itemize}
 
 \subsection{Sans utiliser \texttt{make}:}
@@ -33,8 +36,170 @@
 \end{itemize}
 
 \section{Structure de données pour la grammaire}
-\section{Algorithme de conversion de grammaire}
 
+\subsection{Grammaires algébriques}
 
+\begin{itemize}
+    \item Lettres majuscules A, B, S, X, ..., sauf E, les symboles non-terminaux (variables).
+    \item Lettres minuscules a, b, ..., les terminaux.
+    \item Lettres grecques \(\alpha, \beta, \ldots\), les mots constitués de terminaux et de non-terminaux.
+    \item S est toujours l’axiome.
+    \item E représente la chaîne vide.
+    \item Les règles ont la forme membre\_gauche → membre\_droit, où membre\_gauche doit être un seul non-terminal.
+    \item Deux formes de règles sont supportées : \(S \to A\), \(S \to B\) ou \(S \to A \mid B\). Les deux formes produisent les mêmes résultats.
+\end{itemize}
+
+\subsection{Forme normale de Chomsky}
+
+\begin{itemize}
+    \item Tous les non-terminaux sont formés par une combinaison de lettres majuscules et de chiffres, sauf E. Par exemple : A1, B1, ..., A9, B9.
+    Afin d’éviter la confusion entre 0 et O, ainsi que pour la lisibilité de la grammaire générée, tous les non-terminaux entre A0 et Z0 sont abrégés sans le 0, et représentés simplement par A, B, ..., Z.
+    Les non-terminaux commencent par les lettres majuscules A, B, ..., Z. Si cela ne suffit pas, des combinaisons de lettres et de chiffres sont utilisées (voir la fonction \_generate\_new\_non\_terminal).
+    \item L’ensemble des terminaux est constitué des 26 lettres minuscules.
+    \item S est toujours l’axiome.
+    \item Les règles générées ont la forme membre\_gauche → membre\_droit, où :
+    \begin{itemize}
+        \item membre\_gauche est un seul non-terminal
+        \item membre\_droit est soit deux non-terminaux, soit un seul terminal.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Forme normale de Greibach}
+
+\begin{itemize}
+    \item Les non-terminaux, terminaux et S sont les mêmes que ceux de la forme normale de Chomsky.
+    \item Les règles générées ont la forme membre\_gauche → membre\_droit, où :
+    \begin{itemize}
+        \item membre\_gauche est un seul non-terminal.
+        \item membre\_droit commence par un terminal, suivi par zéro ou plusieurs non-terminaux.
+    \end{itemize}
+\end{itemize}
+
+\section{Algorithme de transformation de grammaire}
+
+\subsection{Algorithme de transformation des grammaires algébriques en Forme normale de Chomsky\protect\footnotemark}
+\footnotetext{Le programme n'utilise pas l'étape START standard (par exemple, introduire \(S_0 \to S\)) pour garantir que le symbole de départ original \(S\) reste conforme à la forme normale de Chomsky, car pendant la conversion (comme l'élimination des règles \(\epsilon\) et des règles unitaires), le symbole de départ \(S\) est progressivement remplacé par les règles spécifiques d'autres non-terminaux. Cette méthode remplit implicitement le rôle de l'étape START sans ajouter explicitement un nouveau symbole de départ.}
+
+\subsubsection{Élimination des règles \(\epsilon\) (Règles Epsilon)}
+
+\textbf{Objectif :}  
+Supprimer les règles générant la chaîne vide \(\epsilon\), sans modifier le langage.
+
+\begin{enumerate}
+    \item Identifier les non-terminaux pouvant produire \(\epsilon\) (appelés non-terminaux \textit{nullable}). Cela se fait par une définition récursive :
+        \begin{itemize}
+            \item Si \( A \to \epsilon \), alors \( A \) est \textit{nullable}.
+            \item Si \( A \to X_1 X_2 \ldots X_n \), et si tous les \( X_i \) sont \textit{nullable}, alors \( A \) est \textit{nullable}.
+        \end{itemize}
+    \item Supprimer toutes les règles \(\epsilon\) :
+        \begin{itemize}
+            \item Parcourir chaque production \( A \to \alpha \) et générer toutes les combinaisons possibles en remplaçant ou supprimant les symboles \textit{nullable}.
+            \item Supprimer les productions \( A \to \epsilon \).
+        \end{itemize}
+\end{enumerate}
+
+\subsubsection{Élimination des règles unitaires (Unit Rules)}
+
+\textbf{Objectif :}  
+Supprimer les règles de la forme \( A \to B \) (où le côté droit est un unique non-terminal).
+
+\begin{enumerate}
+    \item Pour chaque règle unitaire \( A \to B \), ajouter les productions de \( B \) à l'ensemble des productions de \( A \).
+    \item Répéter jusqu'à ce qu'il n'y ait plus de règles unitaires.
+\end{enumerate}
+
+\subsubsection{Division des règles dont le côté droit a une longueur supérieure à 2}
+
+\textbf{Objectif :}  
+Transformer toutes les règles dont le côté droit a une longueur supérieure à 2 (par exemple, \( A \to BCD \)) en une série de règles de longueur 2.
+
+\begin{enumerate}
+    \item Pour une règle \( A \to BCD \), introduire un nouveau non-terminal \( X \) et diviser la règle en :
+        \begin{itemize}
+            \item \( A \to BX \),
+            \item \( X \to CD \).
+        \end{itemize}
+    \item Répéter le processus récursivement jusqu'à ce que toutes les règles aient un côté droit de longueur \( \leq 2 \).
+\end{enumerate}
+
+\subsubsection{Extraction des terminaux dans des règles séparées}
+
+\textbf{Objectif :}  
+Supprimer les règles où des terminaux et des non-terminaux sont mélangés dans le côté droit. Par exemple, \( A \to aB \) ou \( A \to Ba \).
+
+\begin{enumerate}
+    \item Si une règle contient un terminal (et que le côté droit a une longueur \( > 1 \)), introduire un nouveau non-terminal pour ce terminal. Par exemple :
+        \begin{itemize}
+            \item \( A \to aB \) devient \( A \to XB \), avec une nouvelle règle \( X \to a \).
+            \item \( A \to Ba \) devient \( A \to BX \), avec une nouvelle règle \( X \to a \).
+        \end{itemize}
+\end{enumerate}
+
+\subsection{Algorithme de transformation des grammaires algébriques en Forme normale de Greibach}
+
+\subsubsection{Élimination des règles \(\epsilon\) et des règles unitaires}
+
+\textbf{Objectif :}  
+Supprimer les règles qui génèrent la chaîne vide \(\epsilon\) ainsi que les productions unitaires.  
+
+\begin{enumerate}
+    \item Cette étape réutilise deux étapes de la conversion en forme normale de Chomsky :  
+\begin{itemize}
+    \item Élimination des règles \(\epsilon\),
+    \item Élimination des règles unitaires.
+\end{itemize}
+\end{enumerate}
+
+\subsubsection{Élimination de la récursivité à gauche}
+
+\textbf{Objectif :}  
+Éliminer toutes les récursivités à gauche (directes ou indirectes), de sorte que le côté droit des règles de chaque non-terminal ne commence pas par lui-même.
+
+\begin{enumerate}
+\item Pour chaque non-terminal \( A \), diviser ses règles en deux catégories :  
+\begin{itemize}
+    \item \textbf{Règles \(\alpha\) :} Les règles récursives directes, de la forme \( A \to A\alpha \),
+    \item \textbf{Règles \(\beta\) :} Les règles non récursives, de la forme \( A \to \beta \).
+\end{itemize}
+
+\item Introduire un nouveau non-terminal \( A' \) pour gérer la récursivité :  
+\begin{itemize}
+    \item Remplacer les règles de \( A \) par \( A \to \beta A' \),
+    \item Définir les règles de \( A' \) : \( A' \to \alpha A' \mid \epsilon \).
+\end{itemize}
+
+\item Répéter ces étapes jusqu'à ce que toutes les récursivités soient éliminées.
+\end{enumerate}
+
+\subsubsection{S'assurer que toutes les règles commencent par un terminal}
+
+\textbf{Objectif :}  
+Adapter les règles pour que chaque règle commence par un terminal dans le côté droit.
+
+\begin{enumerate}
+    \item Si une règle commence par un non-terminal (par exemple, \( A \to BC \) ou \( A \to BA \)), remplacer le premier non-terminal \( B \) par ses productions.
+    \item Effectuer cette substitution récursivement jusqu'à ce que toutes les règles commencent par un terminal.
+\end{enumerate}
+
+\subsubsection{Suppression des non-terminaux inutiles}
+
+\textbf{Objectif :}  
+Nettoyer la grammaire en supprimant les non-terminaux inutilisés ou les règles superflues.
+
+\begin{enumerate}
+    \item Partir du axiome et marquer récursivement tous les non-terminaux accessibles,
+    \item Supprimer les non-terminaux non marqués ainsi que les règles associées.
+\end{enumerate}
+
+\begin{thebibliography}{9}
+\bibitem{moore-2000-removing}
+  Moore, Robert C. (2000). \textit{Removing Left Recursion from Context-Free Grammars}.  
+  In *1st Meeting of the North {A}merican Chapter of the Association for Computational Linguistics*.  
+  URL: \url{https://aclanthology.org/A00-2033}.
+
+\bibitem{dataset}
+  Dol Aher, Sunita and Halkude, Shraddha (2016). 
+  \textit{JEET CRC T24S Modified TPS Activity for Mathematical Courses to Improve Students’ Fundamental Knowledge}. URL: \url{https://www.researchgate.net/figure/TPS-activity-for-converting-CFG-to-CNF-C-Improving-TPS-to-T24S_fig2_306082567}
+\end{thebibliography}
 
 \end{document}
