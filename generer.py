@@ -27,9 +27,9 @@ class CFGWordGenerator:
             if len(symbols) > max_length:
                 return
 
-            # Si所有符号是终结符 ou 空串, ajouter le mot aux résultats
+            # Si tous les symboles sont des terminaux ou une chaîne vide, ajouter le mot aux résultats
             if all(symbol in self.cfg.terminals or symbol == 'E' for symbol in symbols):
-                # 移除E并加入结果集
+                # Supprimer 'E' et ajouter au résultat
                 word = ''.join(symbol for symbol in symbols if symbol != 'E')
                 results.add(word)
                 return
@@ -40,16 +40,16 @@ class CFGWordGenerator:
                     for production in self.cfg.productions.get(symbol, []):
                         new_symbols = symbols[:i] + list(production) + symbols[i + 1:]
                         expand(new_symbols)
-                    break  # Développer un seul非终结符 pour éviter les combinaisons redondantes
+                    break  # Développer un seul non-terminal pour éviter les combinaisons redondantes
 
         # Commencer le développement à partir du symbole de départ
         expand([self.start_symbol])
 
-        # 确保空串 (E) 优先
+        # La chaîne vide (E) est prioritaire
         sorted_results = sorted(results)
-        if '' in sorted_results:  # 如果结果中包含空串
-            sorted_results.remove('')  # 移除空串
-            sorted_results.insert(0, '')  # 将空串放在第一个
+        if '' in sorted_results:  # Si le résultat contient une chaîne vide
+            sorted_results.remove('')  # Supprimer la chaîne vide
+            sorted_results.insert(0, '')  # Placer la chaîne vide en premier
         return sorted_results
 
 if __name__ == "__main__":
@@ -80,4 +80,4 @@ if __name__ == "__main__":
     # Afficher les mots générés
     print(f"Mots générés (longueur maximale {max_length}) :")
     for word in words:
-        print(word if word != '' else 'E')  # 用'E'显示空串
+        print(word if word != '' else 'E')  # Afficher 'E' pour la chaîne vide
