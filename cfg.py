@@ -121,7 +121,7 @@ class CFG:
 
     def _eliminate_epsilon_rules(self):
         """
-        Éliminer les productions epsilon (règles nullables).
+        Éliminer les productions epsilon (règles nullables) tout en gardant certaines règles spécifiées comme S->E.
         """
         # Trouver tous les non-terminaux qui peuvent générer la chaîne vide
         nullable = {nt for nt, productions in self.productions.items() if 'E' in productions}
@@ -140,8 +140,11 @@ class CFG:
         for nt in list(self.productions.keys()):
             new_productions = set()
             for prod in self.productions[nt]:
+                if prod == 'E' and nt == self.axiome:
+                    new_productions.add('E')  # Conserver S -> E si S est l'axiome
+                    continue
                 if prod == 'E':
-                    continue  # Supprimer la chaîne vide
+                    continue  # Supprimer les autres chaînes vides
                 options = [
                     [symbol, ''] if symbol in nullable else [symbol]
                     for symbol in prod
@@ -152,6 +155,12 @@ class CFG:
                     if new_prod:  # Ajouter uniquement les combinaisons non-nulles
                         new_productions.add(new_prod)
             self.productions[nt] = list(new_productions)
+
+        if 'E' not in self.productions[self.axiome]:
+            for nt in nullable:
+                if nt == self.axiome:
+                    self.productions[self.axiome].append('E')
+                    break
 
     def _eliminate_unit_rules(self):
         """
@@ -267,11 +276,17 @@ class CFG:
         for nt in list(self.productions.keys()):
             updated_productions = []
             for prod in self.productions[nt]:
+                if prod == 'E':  # Si la production est epsilon, la conserver telle quelle
+                    updated_productions.append(prod)
+                    continue
+
                 if prod[0].islower():  # Si la production commence déjà par un terminal
                     updated_productions.append(prod)
                 else:  # Si la production commence par un non-terminal
                     prefix = prod[0]
                     suffix = prod[1:]
+                    if prefix not in self.productions:
+                        raise KeyError(f"Le non-terminal '{prefix}' n'a pas de production définie.")
                     for replacement in self.productions[prefix]:
                         # Si replacement commence déjà par un terminal, concaténer directement
                         if replacement[0].islower():
@@ -292,12 +307,18 @@ class CFG:
         :param prod: Production d'entrée
         :return: Liste de productions qui commencent par un terminal
         """
-        if prod[0].islower():
+        if prod == 'E':  # Retourner directement epsilon si c'est une production
+            return ['E']
+
+        if prod[0].islower():  # Si le premier symbole est un terminal
             return [prod]
 
         results = []
         prefix = prod[0]
         suffix = prod[1:]
+        if prefix not in self.productions:
+            raise KeyError(f"Le non-terminal '{prefix}' n'a pas de production définie.")
+
         for replacement in self.productions[prefix]:
             results.extend(self._expand_to_terminal_prefix(replacement + suffix))
         return results
