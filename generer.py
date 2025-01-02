@@ -1,5 +1,5 @@
 import sys
-from lire import read_cfg_rules  
+from lire import read_cfg_rules
 
 class CFGWordGenerator:
     def __init__(self, cfg):
@@ -27,9 +27,11 @@ class CFGWordGenerator:
             if len(symbols) > max_length:
                 return
 
-            # Si tous les symboles sont terminaux, ajouter le mot aux résultats
-            if all(symbol in self.cfg.terminals for symbol in symbols):
-                results.add(''.join(symbols))
+            # Si所有符号是终结符 ou 空串, ajouter le mot aux résultats
+            if all(symbol in self.cfg.terminals or symbol == 'E' for symbol in symbols):
+                # 移除E并加入结果集
+                word = ''.join(symbol for symbol in symbols if symbol != 'E')
+                results.add(word)
                 return
 
             # Développer chaque non-terminal dans la séquence actuelle
@@ -38,11 +40,17 @@ class CFGWordGenerator:
                     for production in self.cfg.productions.get(symbol, []):
                         new_symbols = symbols[:i] + list(production) + symbols[i + 1:]
                         expand(new_symbols)
-                    break  # Développer un seul non-terminal pour éviter les combinaisons redondantes
+                    break  # Développer un seul非终结符 pour éviter les combinaisons redondantes
 
         # Commencer le développement à partir du symbole de départ
         expand([self.start_symbol])
-        return sorted(results)
+
+        # 确保空串 (E) 优先
+        sorted_results = sorted(results)
+        if '' in sorted_results:  # 如果结果中包含空串
+            sorted_results.remove('')  # 移除空串
+            sorted_results.insert(0, '')  # 将空串放在第一个
+        return sorted_results
 
 if __name__ == "__main__":
     # Vérifier les arguments de la ligne de commande
@@ -72,4 +80,4 @@ if __name__ == "__main__":
     # Afficher les mots générés
     print(f"Mots générés (longueur maximale {max_length}) :")
     for word in words:
-        print(word)
+        print(word if word != '' else 'E')  # 用'E'显示空串
