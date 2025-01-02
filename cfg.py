@@ -101,6 +101,7 @@ class CFG:
 
         # Étape 4 : Extraire les terminaux dans des productions séparées
         self._eliminate_mixed_rules()
+        self._remove_unused_non_terminals()
 
     def to_greibach_normal_form(self):
         """
