@@ -86,7 +86,7 @@ class CFG:
         """
         return all(c.islower() or (c.isupper() and c != 'E') or c == 'E' for c in production)
 
-    def to_chomsky_normal_form(self):
+    def chomsky(self):
         """
         Convertir le CFG en forme normale de Chomsky.
         """
@@ -103,7 +103,7 @@ class CFG:
         self._eliminate_mixed_rules()
         self._remove_unused_non_terminals()
 
-    def to_greibach_normal_form(self):
+    def greibach(self):
         """
         Convertir le CFG en forme normale de Greibach.
         """
