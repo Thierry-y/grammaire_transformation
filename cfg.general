@@ -1,1 +1,2 @@
-S->aSb|E
+S -> aSbS | a| b | A
+A -> E

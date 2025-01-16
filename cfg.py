@@ -90,17 +90,19 @@ class CFG:
         """
         Convertir le CFG en forme normale de Chomsky.
         """
-        # Étape 1 : Éliminer les productions epsilon
-        self._eliminate_epsilon_rules()
+        # Étape 1 : Extraire les terminaux dans des productions séparées
+        self._eliminate_mixed_rules()
 
-        # Étape 2 : Éliminer les productions unitaires
-        self._eliminate_unit_rules()
-
-        # Étape 3 : Éliminer les productions de longueur supérieure à 2
+        # Étape 2 : Éliminer les productions de longueur supérieure à 2
         self._eliminate_long_rules()
 
-        # Étape 4 : Extraire les terminaux dans des productions séparées
-        self._eliminate_mixed_rules()
+        # Étape 3 : Éliminer les productions epsilon
+        self._eliminate_epsilon_rules()
+
+        # Étape 4 : Éliminer les productions unitaires
+        self._eliminate_unit_rules()
+
+        # Étape 5 : Nettoyer les non-terminaux inutilisés
         self._remove_unused_non_terminals()
 
     def greibach(self):
@@ -157,11 +159,8 @@ class CFG:
                         new_productions.add(new_prod)
             self.productions[nt] = list(new_productions)
 
-        if 'E' not in self.productions[self.axiome]:
-            for nt in nullable:
-                if nt == self.axiome:
-                    self.productions[self.axiome].append('E')
-                    break
+        if 'E' not in self.productions[self.axiome] and self.axiome in nullable:
+            self.productions[self.axiome].append('E')
 
     def _eliminate_unit_rules(self):
         """
@@ -271,47 +270,39 @@ class CFG:
                 self.productions[nt_i] = [beta + new_nt for beta in beta_productions]
 
     def _ensure_terminal_prefix(self):
-        """
-        Assurer que chaque production commence par un terminal, tout en évitant les règles redondantes.
-        """
         for nt in list(self.productions.keys()):
-            updated_productions = []
+            updated_productions = set()  
             for prod in self.productions[nt]:
-                if prod == 'E':  # Si la production est epsilon, la conserver telle quelle
-                    updated_productions.append(prod)
+                if prod == 'E':  
+                    if nt == self.axiome:
+                        updated_productions.add(prod)
                     continue
 
-                if prod[0].islower():  # Si la production commence déjà par un terminal
-                    updated_productions.append(prod)
-                else:  # Si la production commence par un non-terminal
+                if prod[0].islower():  
+                    updated_productions.add(prod)
+                else:  
                     prefix = prod[0]
                     suffix = prod[1:]
                     if prefix not in self.productions:
                         raise KeyError(f"Le non-terminal '{prefix}' n'a pas de production définie.")
                     for replacement in self.productions[prefix]:
-                        # Si replacement commence déjà par un terminal, concaténer directement
                         if replacement[0].islower():
-                            candidate = replacement + suffix
-                            if candidate not in updated_productions:
-                                updated_productions.append(candidate)
+                            updated_productions.add(replacement + suffix)
                         else:
-                            # Éviter de générer des non-terminaux intermédiaires superflus
                             for final_prod in self._expand_to_terminal_prefix(replacement + suffix):
-                                if final_prod not in updated_productions:
-                                    updated_productions.append(final_prod)
-            self.productions[nt] = list(set(updated_productions))  # Éviter les doublons
+                                updated_productions.add(final_prod)
+            self.productions[nt] = list(updated_productions)
 
-    def _expand_to_terminal_prefix(self, prod):
-        """
-        Développer la production jusqu'à ce qu'elle commence par un terminal.
+    def _expand_to_terminal_prefix(self, prod, cache=None):
+        if cache is None:
+            cache = {}
+        if prod in cache:
+            return cache[prod]
 
-        :param prod: Production d'entrée
-        :return: Liste de productions qui commencent par un terminal
-        """
-        if prod == 'E':  # Retourner directement epsilon si c'est une production
+        if prod == 'E':
             return ['E']
 
-        if prod[0].islower():  # Si le premier symbole est un terminal
+        if prod[0].islower():
             return [prod]
 
         results = []
@@ -321,8 +312,15 @@ class CFG:
             raise KeyError(f"Le non-terminal '{prefix}' n'a pas de production définie.")
 
         for replacement in self.productions[prefix]:
-            results.extend(self._expand_to_terminal_prefix(replacement + suffix))
+            if replacement == 'E':
+                if suffix:
+                    results.extend(self._expand_to_terminal_prefix(suffix, cache))
+            else:
+                results.extend(self._expand_to_terminal_prefix(replacement + suffix, cache))
+
+        cache[prod] = results
         return results
+
 
     def _remove_unused_non_terminals(self):
         """
