@@ -15,7 +15,7 @@ def read_cfg_rules(file_path):
 
                 non_terminal, productions = line.split('->')
                 production_list = productions.split('|')
-                rule.add_production_with_validation(non_terminal, production_list) # Utiliser l'objet CFG pour ajouter des règles
+                rule.add_production_avec_validation(non_terminal, production_list) # Utiliser l'objet CFG pour ajouter des règles
 
     except FileNotFoundError:
         print(f"Fichier introuvable : {file_path}")

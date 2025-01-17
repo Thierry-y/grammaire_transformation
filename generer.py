@@ -1,10 +1,10 @@
 import sys
 from lire import read_cfg_rules
 
-class CFGWordGenerator:
+class WordGenerator:
     def __init__(self, cfg):
         """
-        Initialiser CFGWordGenerator.
+        Initialiser WordGenerator.
         :param cfg: L'objet CFG passé en paramètre
         """
         self.cfg = cfg
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Générer les mots
-    generator = CFGWordGenerator(cfg_rules)
+    generator = WordGenerator(cfg_rules)
     words = generator.generate_words(max_length)
 
     # Afficher les mots générés

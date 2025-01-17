@@ -35,7 +35,7 @@ class CFG:
                 elif char.isupper() and char != 'E':  # Les lettres majuscules (sauf 'E') sont des non-terminaux
                     self.non_terminals.add(char)
 
-    def add_production_with_validation(self, non_terminal, production_list):
+    def add_production_avec_validation(self, non_terminal, production_list):
         if not CFG.is_valid_non_terminal(non_terminal):
             raise ValueError(f"'{non_terminal}' n'est pas un non-terminal valide !")
 
@@ -88,7 +88,7 @@ class CFG:
 
     def chomsky(self):
         """
-        Convertir le CFG en forme normale de Chomsky.
+        Convertir le CFG(grammaire algébrique) en forme normale de Chomsky.
         """
         # Étape 1 : Extraire les terminaux dans des productions séparées
         self.extraire_terminaux_regles()
@@ -215,7 +215,6 @@ class CFG:
                     new_productions.append(new_prod)
             self.productions[nt] = new_productions
 
-
     def generer_new_non_terminal(self):
         """
         Générer un nouveau non-terminal.
@@ -270,17 +269,22 @@ class CFG:
                 self.productions[nt_i] = [beta + new_nt for beta in beta_productions]
 
     def assurer_terminal_premier(self):
+        """
+        Assurer que toutes les productions commencent par un terminal.
+        
+        :raises KeyError: Si un non-terminal référencé dans une production n'a pas de règles définies.
+        """
         for nt in list(self.productions.keys()):
-            updated_productions = set()  
+            updated_productions = set()  # Ensemble pour stocker les nouvelles productions mises à jour
             for prod in self.productions[nt]:
-                if prod == 'E':  
+                if prod == 'E':  # Ignorer la chaîne vide sauf si c'est pour l'axiome
                     if nt == self.axiome:
                         updated_productions.add(prod)
                     continue
 
-                if prod[0].islower():  
+                if prod[0].islower():  # Si la production commence par un terminal, elle est déjà valide
                     updated_productions.add(prod)
-                else:  
+                else:  # La production commence par un non-terminal
                     prefix = prod[0]
                     suffix = prod[1:]
                     if prefix not in self.productions:
@@ -289,36 +293,46 @@ class CFG:
                         if replacement[0].islower():
                             updated_productions.add(replacement + suffix)
                         else:
+                            # Développer récursivement jusqu'à obtenir un préfixe terminal
                             for final_prod in self._expand_to_terminal_prefix(replacement + suffix):
                                 updated_productions.add(final_prod)
             self.productions[nt] = list(updated_productions)
 
     def _expand_to_terminal_prefix(self, prod, cache=None):
+        """
+        Développer récursivement une production pour garantir qu'elle commence par un terminal.
+        
+        :param prod: La production à développer.
+        :param cache: Dictionnaire optionnel pour mémoriser les résultats des développements déjà effectués.
+        :return: Liste des productions qui commencent par un terminal.
+        :raises KeyError: Si un non-terminal référencé dans une production n'a pas de règles définies.
+        """
         if cache is None:
             cache = {}
-        if prod in cache:
+        if prod in cache:  # Vérifier si le résultat est déjà en cache
             return cache[prod]
 
-        if prod == 'E':
+        if prod == 'E':  # Retourner directement la chaîne vide si elle est rencontrée
             return ['E']
 
-        if prod[0].islower():
+        if prod[0].islower():  # Si le premier symbole est un terminal, la production est valide
             return [prod]
 
         results = []
-        prefix = prod[0]
-        suffix = prod[1:]
+        prefix = prod[0]  # Premier symbole de la production
+        suffix = prod[1:]  # Reste de la production
         if prefix not in self.productions:
             raise KeyError(f"Le non-terminal '{prefix}' n'a pas de production définie.")
 
+        # Parcourir les remplacements possibles pour le préfixe (non-terminal)
         for replacement in self.productions[prefix]:
-            if replacement == 'E':
-                if suffix:
+            if replacement == 'E':  # Si le remplacement est la chaîne vide
+                if suffix:  # Continuer avec le suffixe s'il existe
                     results.extend(self._expand_to_terminal_prefix(suffix, cache))
-            else:
+            else:  # Ajouter le remplacement et continuer avec le suffixe
                 results.extend(self._expand_to_terminal_prefix(replacement + suffix, cache))
 
-        cache[prod] = results
+        cache[prod] = results  # Stocker les résultats dans le cache pour éviter les calculs redondants
         return results
 
 
