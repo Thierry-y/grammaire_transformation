@@ -9,10 +9,10 @@ all: run
 run:
 	$(PYTHON) grammaire.py
 
-generer_chomsky:
+generer_chomsky: run
 	$(PYTHON) generer.py alg.chomsky $(NUM) > $(OUTPUT_CHOMSKY)
 
-generer_greibach:
+generer_greibach: run
 	$(PYTHON) generer.py alg.greibach $(NUM) > $(OUTPUT_GREIBACH)
 
 diff: run generer_chomsky generer_greibach

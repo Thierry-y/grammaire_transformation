@@ -294,11 +294,11 @@ class CFG:
                             updated_productions.add(replacement + suffix)
                         else:
                             # Développer récursivement jusqu'à obtenir un préfixe terminal
-                            for final_prod in self._expand_to_terminal_prefix(replacement + suffix):
+                            for final_prod in self.developpe_production(replacement + suffix):
                                 updated_productions.add(final_prod)
             self.productions[nt] = list(updated_productions)
 
-    def _expand_to_terminal_prefix(self, prod, cache=None):
+    def developpe_production(self, prod, cache=None):
         """
         Développer récursivement une production pour garantir qu'elle commence par un terminal.
         
@@ -328,13 +328,12 @@ class CFG:
         for replacement in self.productions[prefix]:
             if replacement == 'E':  # Si le remplacement est la chaîne vide
                 if suffix:  # Continuer avec le suffixe s'il existe
-                    results.extend(self._expand_to_terminal_prefix(suffix, cache))
+                    results.extend(self.developpe_production(suffix, cache))
             else:  # Ajouter le remplacement et continuer avec le suffixe
-                results.extend(self._expand_to_terminal_prefix(replacement + suffix, cache))
+                results.extend(self.developpe_production(replacement + suffix, cache))
 
         cache[prod] = results  # Stocker les résultats dans le cache pour éviter les calculs redondants
         return results
-
 
     def supprimer_unused_non_terminal(self):
         """
