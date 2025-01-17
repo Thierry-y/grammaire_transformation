@@ -91,38 +91,38 @@ class CFG:
         Convertir le CFG en forme normale de Chomsky.
         """
         # Étape 1 : Extraire les terminaux dans des productions séparées
-        self._eliminate_mixed_rules()
+        self.extraire_terminaux_regles()
 
-        # Étape 2 : Éliminer les productions de longueur supérieure à 2
-        self._eliminate_long_rules()
+        # Étape 2 : Éliminer les productions de non-terminaux de longueur supérieure à 2
+        self.eliminer_long_regles()
 
         # Étape 3 : Éliminer les productions epsilon
-        self._eliminate_epsilon_rules()
+        self.eliminer_epsilon_regles()
 
         # Étape 4 : Éliminer les productions unitaires
-        self._eliminate_unit_rules()
+        self.eliminer_unit_regles()
 
         # Étape 5 : Nettoyer les non-terminaux inutilisés
-        self._remove_unused_non_terminals()
+        self.supprimer_unused_non_terminal()
 
     def greibach(self):
         """
         Convertir le CFG en forme normale de Greibach.
         """
         # Étape 1 : Éliminer les productions unitaires et epsilon
-        self._eliminate_epsilon_rules()
-        self._eliminate_unit_rules()
+        self.eliminer_epsilon_regles()
+        self.eliminer_unit_regles()
 
         # Étape 2 : Éliminer la récursion à gauche
-        self._eliminate_left_recursion()
+        self.eliminer_left_recursion()
 
         # Étape 3 : Assurer que toutes les productions commencent par un terminal
-        self._ensure_terminal_prefix()
+        self.assurer_terminal_premier()
 
         # Étape 4 : Nettoyer les non-terminaux inutilisés
-        self._remove_unused_non_terminals()
+        self.supprimer_unused_non_terminal()
 
-    def _eliminate_epsilon_rules(self):
+    def eliminer_epsilon_regles(self):
         """
         Éliminer les productions epsilon (règles nullables) tout en gardant certaines règles spécifiées comme S->E.
         """
@@ -162,7 +162,7 @@ class CFG:
         if 'E' not in self.productions[self.axiome] and self.axiome in nullable:
             self.productions[self.axiome].append('E')
 
-    def _eliminate_unit_rules(self):
+    def eliminer_unit_regles(self):
         """
         Éliminer les productions unitaires (unit rules).
         """
@@ -173,7 +173,7 @@ class CFG:
                 self.productions[nt].remove(unit)
                 self.productions[nt].extend(self.productions[unit])
 
-    def _eliminate_long_rules(self):
+    def eliminer_long_regles(self):
         """
         Éliminer les productions dont la partie droite a une longueur supérieure à 2.
         """
@@ -182,7 +182,7 @@ class CFG:
             new_productions = []
             for prod in self.productions[nt]:
                 while len(prod) > 2:
-                    new_nt = self._generate_new_non_terminal()
+                    new_nt = self.generer_new_non_terminal()
                     self.non_terminals.add(new_nt)
                     new_rules[new_nt] = [prod[:2]]
                     prod = new_nt + prod[2:]
@@ -190,7 +190,7 @@ class CFG:
             self.productions[nt] = new_productions
         self.productions.update(new_rules)
 
-    def _eliminate_mixed_rules(self):
+    def extraire_terminaux_regles(self):
         """
         Extraire les terminaux dans des productions séparées.
         """
@@ -205,7 +205,7 @@ class CFG:
                     for c in prod:
                         if c.islower():
                             if c not in mapping:
-                                new_nt = self._generate_new_non_terminal()
+                                new_nt = self.generer_new_non_terminal()
                                 self.non_terminals.add(new_nt)
                                 self.productions[new_nt] = [c]
                                 mapping[c] = new_nt
@@ -216,7 +216,7 @@ class CFG:
             self.productions[nt] = new_productions
 
 
-    def _generate_new_non_terminal(self):
+    def generer_new_non_terminal(self):
         """
         Générer un nouveau non-terminal.
         """
@@ -233,7 +233,7 @@ class CFG:
                     self.non_terminals.add(new_nt)
                     return new_nt
 
-    def _eliminate_left_recursion(self):
+    def eliminer_left_recursion(self):
         """
         Éliminer la récursion directe et indirecte à gauche.
         """
@@ -264,12 +264,12 @@ class CFG:
                     beta_productions.append(prod)
 
             if alpha_productions:
-                new_nt = self._generate_new_non_terminal()
+                new_nt = self.generer_new_non_terminal()
                 self.non_terminals.add(new_nt)
                 self.productions[new_nt] = [alpha + new_nt for alpha in alpha_productions] + ['E']
                 self.productions[nt_i] = [beta + new_nt for beta in beta_productions]
 
-    def _ensure_terminal_prefix(self):
+    def assurer_terminal_premier(self):
         for nt in list(self.productions.keys()):
             updated_productions = set()  
             for prod in self.productions[nt]:
@@ -322,7 +322,7 @@ class CFG:
         return results
 
 
-    def _remove_unused_non_terminals(self):
+    def supprimer_unused_non_terminal(self):
         """
         Supprimer les non-terminaux inutilisés et les règles superflues.
         """
