@@ -1,7 +1,7 @@
 import string
 
 class CFG:
-    def __init__(self, axiome='S'):
+    def __init__(self, axiome=None):
         """
         Initialiser un format CFG, contenant l'ensemble des non-terminaux, l'ensemble des terminaux, le symbole de départ et les règles de production.
 
@@ -19,6 +19,9 @@ class CFG:
         :param non_terminal: Non-terminal
         :param production_list: Liste des productions (list de str)
         """
+        if not self.axiome:  # Si axiome n'est pas encore défini, définir le premier non-terminal ajouté comme axiome
+            self.add_axiome(non_terminal)
+
         if non_terminal not in self.non_terminals:
             self.non_terminals.add(non_terminal)
 
@@ -34,6 +37,17 @@ class CFG:
                     self.terminals.add(char)
                 elif char.isupper() and char != 'E':  # Les lettres majuscules (sauf 'E') sont des non-terminaux
                     self.non_terminals.add(char)
+
+    def add_axiome(self, non_terminal):
+        """
+        Définir le symbole de départ (axiome).
+
+        :param non_terminal: Le non-terminal à définir comme axiome
+        """
+        if self.axiome is None:  
+            self.axiome = non_terminal
+        else:
+            raise ValueError(f"L'axiome est déjà défini comme '{self.axiome}'.")
 
     def add_production_avec_validation(self, non_terminal, production_list):
         if not CFG.is_valid_non_terminal(non_terminal):
@@ -277,9 +291,9 @@ class CFG:
         for nt in list(self.productions.keys()):
             updated_productions = set()  # Ensemble pour stocker les nouvelles productions mises à jour
             for prod in self.productions[nt]:
-                if prod == 'E':  # Ignorer la chaîne vide sauf si c'est pour l'axiome
+                if prod[0] == 'E':  # Ignorer la chaîne vide sauf si c'est pour l'axiome
                     if nt == self.axiome:
-                        updated_productions.add(prod)
+                        updated_productions.add('E')
                     continue
 
                 if prod[0].islower():  # Si la production commence par un terminal, elle est déjà valide
