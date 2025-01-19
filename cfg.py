@@ -2,24 +2,13 @@ import string
 
 class CFG:
     def __init__(self, axiome=None):
-        """
-        Initialiser un format CFG, contenant l'ensemble des non-terminaux, l'ensemble des terminaux, le symbole de départ et les règles de production.
-
-        :param axiome: Le symbole de départ, par défaut 'S'
-        """
-        self.non_terminals = set()  # Ensemble des non-terminaux
-        self.terminals = set()  # Ensemble des terminaux
-        self.productions = {}  # Règles de production, format {non-terminal: [liste de productions]}
-        self.axiome = axiome  # Symbole de départ
+        self.non_terminals = set()  # Ensemble des non-terminaux (nouveau format : lettre + chiffre)
+        self.terminals = set()
+        self.productions = {}
+        self.axiome = axiome
 
     def add_production(self, non_terminal, production_list):
-        """
-        Ajouter des règles de production.
-
-        :param non_terminal: Non-terminal
-        :param production_list: Liste des productions (list de str)
-        """
-        if not self.axiome:  # Si axiome n'est pas encore défini, définir le premier non-terminal ajouté comme axiome
+        if not self.axiome:
             self.add_axiome(non_terminal)
 
         if non_terminal not in self.non_terminals:
@@ -30,21 +19,16 @@ class CFG:
         else:
             self.productions[non_terminal] = production_list
 
-        # Mettre à jour les ensembles des terminaux et des non-terminaux
+        # Mise à jour des ensembles des terminaux et des non-terminaux
         for production in production_list:
             for char in production:
-                if char.islower():  # Les lettres minuscules sont des terminaux
+                if char.islower():
                     self.terminals.add(char)
-                elif char.isupper() and char != 'E':  # Les lettres majuscules (sauf 'E') sont des non-terminaux
+                elif self.is_valid_non_terminal(char):
                     self.non_terminals.add(char)
 
     def add_axiome(self, non_terminal):
-        """
-        Définir le symbole de départ (axiome).
-
-        :param non_terminal: Le non-terminal à définir comme axiome
-        """
-        if self.axiome is None:  
+        if self.axiome is None:
             self.axiome = non_terminal
         else:
             raise ValueError(f"L'axiome est déjà défini comme '{self.axiome}'.")
@@ -73,12 +57,9 @@ class CFG:
     @staticmethod
     def is_valid_non_terminal(symbol):
         """
-        Vérifier si le symbole est un non-terminal valide.
-
-        :param symbol: Symbole
-        :return: Booléen
+        Vérifier si le symbole est un non-terminal valide (lettre + chiffre, mais pas 'E').
         """
-        return len(symbol) == 1 and symbol.isupper() and symbol != 'E'
+        return len(symbol) > 1 and symbol[0].isupper() and symbol[1:].isdigit() and symbol != 'E'
 
     @staticmethod
     def is_valid_terminal(symbol):
