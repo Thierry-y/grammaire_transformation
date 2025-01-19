@@ -10,10 +10,10 @@ def read_cfg_rules(file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             for line in file:
                 line = line.strip().replace(" ", "")
-                if not line or '->' not in line:
+                if not line or ':' not in line:
                     continue
 
-                non_terminal, productions = line.split('->')
+                non_terminal, productions = line.split(':')
                 production_list = productions.split('|')
                 rule.add_production_avec_validation(non_terminal, production_list) # Utiliser l'objet CFG pour ajouter des règles
 
