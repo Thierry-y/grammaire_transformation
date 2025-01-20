@@ -1,4 +1,5 @@
 import string
+import re
 
 class CFG:
     def __init__(self, axiome=None):
@@ -35,7 +36,7 @@ class CFG:
             for char in production:
                 if char.islower():  # Les lettres minuscules sont des terminaux
                     self.terminals.add(char)
-                elif char.isupper() and char != 'E':  # Les lettres majuscules (sauf 'E') sont des non-terminaux
+                elif CFG.is_valid_non_terminal(char):  # Les lettres majuscules (sauf 'E') sont des non-terminaux
                     self.non_terminals.add(char)
 
     def add_axiome(self, non_terminal):
@@ -78,7 +79,8 @@ class CFG:
         :param symbol: Symbole
         :return: Booléen
         """
-        return len(symbol) == 1 and symbol.isupper() and symbol != 'E'
+        pattern = r'^[A-DF-Z][0-9]$'
+        return bool(re.match(pattern, symbol))
 
     @staticmethod
     def is_valid_terminal(symbol):
@@ -89,6 +91,19 @@ class CFG:
         :return: Booléen
         """
         return len(symbol) == 1 and symbol.islower()
+    
+
+    @staticmethod
+    def split_production(production):
+        """
+        Découper une production en une liste de symboles (terminaux et non-terminaux).
+
+        :param production: Production à découper
+        :return: Liste des symboles
+        """
+        pattern = r'[A-DF-Z][0-9]|[a-z]|E'  # Non-terminaux (A1, S0), terminaux (a-z), ou vide (E)
+        matches = re.findall(pattern, production)
+        return matches
 
     @staticmethod
     def is_valid_production(production):
@@ -98,7 +113,19 @@ class CFG:
         :param production: Production
         :return: Booléen
         """
-        return all(c.islower() or (c.isupper() and c != 'E') or c == 'E' for c in production)
+        # Découper la production en symboles
+        symbols = CFG.split_production(production)
+
+        # Reconstruire la production depuis les symboles pour vérifier si tout a été traité
+        reconstructed = ''.join(symbols)
+        if reconstructed != production:  # S'assurer qu'aucun caractère invalide n'a été ignoré
+            return False
+
+        # Vérifier chaque symbole
+        return all(
+            c.islower() or CFG.is_valid_non_terminal(c) or c == 'E'
+            for c in symbols
+        )
 
     def chomsky(self):
         """
@@ -106,18 +133,23 @@ class CFG:
         """
         # Étape 1 : Extraire les terminaux dans des productions séparées
         self.extraire_terminaux_regles()
+        # self.display()
 
         # Étape 2 : Éliminer les productions de non-terminaux de longueur supérieure à 2
         self.eliminer_long_regles()
+        # self.display()
 
         # Étape 3 : Éliminer les productions epsilon
         self.eliminer_epsilon_regles()
+        # self.display()
 
-        # Étape 4 : Éliminer les productions unitaires
+        # # Étape 4 : Éliminer les productions unitaires
         self.eliminer_unit_regles()
+        # self.display()
 
         # Étape 5 : Nettoyer les non-terminaux inutilisés
         self.supprimer_unused_non_terminal()
+        # self.display()
 
     def greibach(self):
         """
@@ -126,7 +158,7 @@ class CFG:
         # Étape 1 : Éliminer la récursion à gauche
         self.eliminer_left_recursion()
 
-        # Étape 3 : Éliminer les productions unitaires et epsilon
+        # Étape 2 : Éliminer les productions unitaires et epsilon
         self.eliminer_epsilon_regles()
         self.eliminer_unit_regles()
 
@@ -138,7 +170,7 @@ class CFG:
 
     def eliminer_epsilon_regles(self):
         """
-        Éliminer les productions epsilon (règles nullables) tout en gardant certaines règles spécifiées comme S->E.
+        Éliminer les productions epsilon (règles nullables) tout en gardant certaines règles spécifiées comme S0->E.
         """
         # Trouver tous les non-terminaux qui peuvent générer la chaîne vide
         nullable = {nt for nt, productions in self.productions.items() if 'E' in productions}
@@ -147,7 +179,8 @@ class CFG:
             new_nullable = nullable.copy()
             for nt, productions in self.productions.items():
                 for prod in productions:
-                    if all(symbol in nullable for symbol in prod):  # Si la partie droite de la production est entièrement nullable
+                    symbols = CFG.split_production(prod)
+                    if all(symbol in nullable for symbol in symbols):  # Si la partie droite est entièrement nullable
                         new_nullable.add(nt)
             if new_nullable == nullable:
                 break
@@ -158,13 +191,15 @@ class CFG:
             new_productions = set()
             for prod in self.productions[nt]:
                 if prod == 'E' and nt == self.axiome:
-                    new_productions.add('E')  # Conserver S -> E si S est l'axiome
+                    new_productions.add('E')  # Conserver S0 -> E si S0 est l'axiome
                     continue
                 if prod == 'E':
                     continue  # Supprimer les autres chaînes vides
+
+                symbols = CFG.split_production(prod)
                 options = [
                     [symbol, ''] if symbol in nullable else [symbol]
-                    for symbol in prod
+                    for symbol in symbols
                 ]
                 from itertools import product
                 for option in product(*options):
@@ -181,70 +216,96 @@ class CFG:
         Éliminer les productions unitaires (unit rules).
         """
         for nt in list(self.productions.keys()):
-            unit_productions = [p for p in self.productions[nt] if len(p) == 1 and p in self.non_terminals]
+            # Identifier les productions unitaires
+            unit_productions = [p for p in self.productions[nt] 
+                                if len(CFG.split_production(p)) == 1 and p in self.non_terminals]
+
+            # Tant qu'il existe des productions unitaires
             while unit_productions:
                 unit = unit_productions.pop()
+
+                # Supprimer la règle unitaire
                 self.productions[nt].remove(unit)
-                self.productions[nt].extend(self.productions[unit])
+
+                # Ajouter les règles de production du non-terminal cible, sans doublons
+                for prod in self.productions[unit]:
+                    if prod not in self.productions[nt]:
+                        self.productions[nt].append(prod)
 
     def eliminer_long_regles(self):
         """
         Éliminer les productions dont la partie droite a une longueur supérieure à 2.
         """
         new_rules = {}
+
         for nt in list(self.productions.keys()):
             new_productions = []
             for prod in self.productions[nt]:
-                while len(prod) > 2:
+                # Découper la production en une liste de symboles
+                symbols = CFG.split_production(prod)
+
+                # Tant que la production contient plus de 2 symboles
+                while len(symbols) > 2:
+                    # Générer un nouveau non-terminal
                     new_nt = self.generer_new_non_terminal()
                     self.non_terminals.add(new_nt)
-                    new_rules[new_nt] = [prod[:2]]
-                    prod = new_nt + prod[2:]
-                new_productions.append(prod)
+
+                    # Créer une règle pour les 2 premiers symboles
+                    new_rules[new_nt] = [''.join(symbols[:2])]
+
+                    # Réduire la production à partir du nouveau non-terminal
+                    symbols = [new_nt] + symbols[2:]
+
+                # Ajouter la production réduite
+                new_productions.append(''.join(symbols))
+
+            # Mettre à jour les productions pour le non-terminal actuel
             self.productions[nt] = new_productions
+
+        # Ajouter les nouvelles règles générées
         self.productions.update(new_rules)
 
     def extraire_terminaux_regles(self):
         """
         Extraire les terminaux dans des productions séparées.
         """
-        mapping = {}
+        mapping = {}  # Associe chaque terminal à un nouveau non-terminal
         for nt in list(self.productions.keys()):
             new_productions = []
             for prod in self.productions[nt]:
-                if len(prod) == 1 or all(c.isupper() for c in prod):
+                # Découper la production en une liste de symboles
+                symbols = CFG.split_production(prod)
+
+                # Si la production ne contient que des non-terminaux ou est de longueur 1, ne pas la modifier
+                if len(symbols) == 1 or all(CFG.is_valid_non_terminal(c) for c in symbols):
                     new_productions.append(prod)
                 else:
-                    new_prod = ''
-                    for c in prod:
-                        if c.islower():
+                    new_prod = []
+                    for c in symbols:
+                        if c.islower():  # Si c'est un terminal
                             if c not in mapping:
+                                # Générer un nouveau non-terminal pour le terminal
                                 new_nt = self.generer_new_non_terminal()
                                 self.non_terminals.add(new_nt)
                                 self.productions[new_nt] = [c]
                                 mapping[c] = new_nt
-                            new_prod += mapping[c]
+                            new_prod.append(mapping[c])  # Remplacer le terminal par le nouveau non-terminal
                         else:
-                            new_prod += c
-                    new_productions.append(new_prod)
+                            new_prod.append(c)  # Conserver les non-terminaux
+                    new_productions.append(''.join(new_prod))  # Reconstruire la production
             self.productions[nt] = new_productions
 
     def generer_new_non_terminal(self):
         """
         Générer un nouveau non-terminal.
         """
-        # Essayer de générer de A à Z
-        for c in string.ascii_uppercase:
-            if c not in self.non_terminals and c != 'E':
-                return c
-
-        # Si A-Z est déjà utilisé, utiliser une combinaison lettre+chiffre
-        for letter in string.ascii_uppercase:
-            for number in range(1, 10):  # Limiter les chiffres de 1 à 9
-                new_nt = f"{letter}{number}"
-                if new_nt not in self.non_terminals and new_nt != 'E':
-                    self.non_terminals.add(new_nt)
-                    return new_nt
+        for number in range(0, 10):
+            for letter in string.ascii_uppercase:
+                if letter != 'E':
+                    new_nt = f"{letter}{number}"
+                    if new_nt not in self.non_terminals:
+                        self.non_terminals.add(new_nt)
+                        return new_nt
 
     def eliminer_left_recursion(self):
         """
@@ -259,9 +320,11 @@ class CFG:
                 nt_j = non_terminals[j]
                 updated_productions = []
                 for prod in self.productions[nt_i]:
-                    if prod.startswith(nt_j):
+                    # Découper la production en symboles
+                    symbols = CFG.split_production(prod)
+                    if symbols[0] == nt_j:  # Si le premier symbole est nt_j
                         for beta in self.productions[nt_j]:
-                            updated_productions.append(beta + prod[1:])
+                            updated_productions.append(beta + ''.join(symbols[1:]))
                     else:
                         updated_productions.append(prod)
                 self.productions[nt_i] = updated_productions
@@ -270,15 +333,20 @@ class CFG:
             alpha_productions = []
             beta_productions = []
             for prod in self.productions[nt_i]:
-                if prod.startswith(nt_i):
-                    alpha_productions.append(prod[1:])
+                # Découper la production en symboles
+                symbols = CFG.split_production(prod)
+                if symbols[0] == nt_i:  # Si le premier symbole est nt_i
+                    alpha_productions.append(''.join(symbols[1:]))
                 else:
                     beta_productions.append(prod)
 
             if alpha_productions:
+                # Générer un nouveau non-terminal
                 new_nt = self.generer_new_non_terminal()
                 self.non_terminals.add(new_nt)
+                # Alpha productions : alpha + nouveau non-terminal
                 self.productions[new_nt] = [alpha + new_nt for alpha in alpha_productions] + ['E']
+                # Beta productions : beta + nouveau non-terminal
                 self.productions[nt_i] = [beta + new_nt for beta in beta_productions]
 
     def assurer_terminal_premier(self):
@@ -290,20 +358,22 @@ class CFG:
         for nt in list(self.productions.keys()):
             updated_productions = set()  # Ensemble pour stocker les nouvelles productions mises à jour
             for prod in self.productions[nt]:
-                if prod[0] == 'E':  # Ignorer la chaîne vide sauf si c'est pour l'axiome
+                symbols = CFG.split_production(prod)  # Découper la production en symboles
+                if symbols[0] == 'E':  # Ignorer la chaîne vide sauf si c'est pour l'axiome
                     if nt == self.axiome:
                         updated_productions.add('E')
                     continue
 
-                if prod[0].islower():  # Si la production commence par un terminal, elle est déjà valide
+                if symbols[0].islower():  # Si la production commence par un terminal, elle est déjà valide
                     updated_productions.add(prod)
                 else:  # La production commence par un non-terminal
-                    prefix = prod[0]
-                    suffix = prod[1:]
+                    prefix = symbols[0]
+                    suffix = ''.join(symbols[1:])
                     if prefix not in self.productions:
                         raise KeyError(f"Le non-terminal '{prefix}' n'a pas de production définie.")
                     for replacement in self.productions[prefix]:
-                        if replacement[0].islower():
+                        replacement_symbols = CFG.split_production(replacement)
+                        if replacement_symbols[0].islower():
                             updated_productions.add(replacement + suffix)
                         else:
                             # Développer récursivement jusqu'à obtenir un préfixe terminal
@@ -328,18 +398,20 @@ class CFG:
         if prod == 'E':  # Retourner directement la chaîne vide si elle est rencontrée
             return ['E']
 
-        if prod[0].islower():  # Si le premier symbole est un terminal, la production est valide
+        symbols = CFG.split_production(prod)  # Découper la production en symboles
+        if symbols[0].islower():  # Si le premier symbole est un terminal, la production est valide
             return [prod]
 
         results = []
-        prefix = prod[0]  # Premier symbole de la production
-        suffix = prod[1:]  # Reste de la production
+        prefix = symbols[0]  # Premier symbole de la production
+        suffix = ''.join(symbols[1:])  # Reste de la production
         if prefix not in self.productions:
             raise KeyError(f"Le non-terminal '{prefix}' n'a pas de production définie.")
 
         # Parcourir les remplacements possibles pour le préfixe (non-terminal)
         for replacement in self.productions[prefix]:
-            if replacement == 'E':  # Si le remplacement est la chaîne vide
+            replacement_symbols = CFG.split_production(replacement)
+            if replacement_symbols[0] == 'E':  # Si le remplacement est la chaîne vide
                 if suffix:  # Continuer avec le suffixe s'il existe
                     results.extend(self.developpe_production(suffix, cache))
             else:  # Ajouter le remplacement et continuer avec le suffixe
@@ -358,7 +430,7 @@ class CFG:
         while stack:
             nt = stack.pop()
             for prod in self.productions.get(nt, []):
-                for symbol in prod:
+                for symbol in self.split_production(prod):  
                     if symbol in self.non_terminals and symbol not in used:
                         used.add(symbol)
                         stack.append(symbol)
