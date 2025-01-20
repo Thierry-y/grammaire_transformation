@@ -123,12 +123,12 @@ class CFG:
         """
         Convertir le CFG en forme normale de Greibach.
         """
-        # Étape 1 : Éliminer les productions unitaires et epsilon
+        # Étape 1 : Éliminer la récursion à gauche
+        self.eliminer_left_recursion()
+
+        # Étape 3 : Éliminer les productions unitaires et epsilon
         self.eliminer_epsilon_regles()
         self.eliminer_unit_regles()
-
-        # Étape 2 : Éliminer la récursion à gauche
-        self.eliminer_left_recursion()
 
         # Étape 3 : Assurer que toutes les productions commencent par un terminal
         self.assurer_terminal_premier()
@@ -253,7 +253,6 @@ class CFG:
         non_terminals = list(self.non_terminals)
         for i in range(len(non_terminals)):
             nt_i = non_terminals[i]
-            new_productions = []
 
             # Remplacer la récursion indirecte à gauche
             for j in range(i):
