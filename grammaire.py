@@ -10,7 +10,7 @@ if __name__ == "__main__":
     algebre.chomsky()
     print("-" * 50)
     print("Forme normale de Chomsky:")
-    #algebre.display()
+    # algebre.display()
     ecrire.write_to_file(algebre,"alg.chomsky")
     algebre.greibach()
     print("-" * 50)

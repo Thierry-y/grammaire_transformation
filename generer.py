@@ -1,4 +1,5 @@
 import sys
+from cfg import CFG
 from lire import read_cfg_rules
 
 class WordGenerator:
@@ -38,7 +39,7 @@ class WordGenerator:
             for i, symbol in enumerate(symbols):
                 if symbol in self.cfg.non_terminals:  # Développer uniquement les non-terminaux
                     for production in self.cfg.productions.get(symbol, []):
-                        new_symbols = symbols[:i] + list(production) + symbols[i + 1:]
+                        new_symbols = symbols[:i] + CFG.split_production(production) + symbols[i + 1:]
                         expand(new_symbols)
                     break  # Développer un seul non-terminal pour éviter les combinaisons redondantes
 
