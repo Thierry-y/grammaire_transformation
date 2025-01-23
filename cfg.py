@@ -231,6 +231,8 @@ class CFG:
                 for prod in self.productions[unit]:
                     if prod not in self.productions[nt]:
                         self.productions[nt].append(prod)
+                        if len(CFG.split_production(prod)) == 1 and prod in self.non_terminals:
+                            unit_productions.append(prod)
 
     def eliminer_long_regles(self):
         """
